@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState, useAppDispatch } from '../../../../store'
 import http from '../../../../utils/http'
+import { useGetPostsQuery } from '../../blog.service'
 import { deletePost, getPostList, startEditingPost } from '../../blog.slice'
 // import { deletePost, getPostList, startEditingPost } from '../../blog.slice'
 import PostItem from '../PostItem'
@@ -58,6 +59,11 @@ const PostList = () => {
     dispatch(startEditingPost(postId))
   }
 
+  // isLoading là chỉ dành cho lần fetch đầu tiên
+  // isFetching là cho mỗi lần gọi API (thường dùng isFetching còn isLoading sử dụng cho các trường hợp đặc biệt mà thôi)
+  const { data, isLoading, isFetching } = useGetPostsQuery()
+  console.log(data, isLoading, isFetching)
+
   return (
     <>
       <div className='bg-white py-6 sm:py-8 lg:py-12'>
@@ -69,13 +75,28 @@ const PostList = () => {
             </p>
           </div>
           <div className='grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-2 xl:grid-cols-2 xl:gap-8'>
-            {loading && (
+            {/* {loading && (
               <>
                 <SkeletonPost />
                 <SkeletonPost />
               </>
             )}
             {!loading &&
+              postList.map((post) => (
+                <PostItem
+                  post={post}
+                  key={post.id}
+                  handleDelete={handleDelete}
+                  handleStartEditing={handleStartEditing}
+                />
+              ))} */}
+            {isFetching && (
+              <>
+                <SkeletonPost />
+                <SkeletonPost />
+              </>
+            )}
+            {!isFetching &&
               postList.map((post) => (
                 <PostItem
                   post={post}
