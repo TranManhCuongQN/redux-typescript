@@ -1,15 +1,55 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../../../../store'
-import { deletePost, startEditingPost } from '../../blog.reducer'
+import { RootState, useAppDispatch } from '../../../../store'
+import http from '../../../../utils/http'
+import { deletePost, getPostList, startEditingPost } from '../../blog.slice'
+// import { deletePost, getPostList, startEditingPost } from '../../blog.slice'
 import PostItem from '../PostItem'
+import SkeletonPost from '../SkeletonPost'
 
 const PostList = () => {
   // sử dụng useSelector để lấy state từ store
   // useSelector nhận vào 1 function, function này có params là 1 state, return về state muốn lấy
   const postList = useSelector((state: RootState) => state.blog.postList)
+  const loading = useSelector((state: RootState) => state.blog.loading)
 
-  const dispatch = useDispatch()
+  // const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
+
+  useEffect(() => {
+    // trong thực tế cái app chúng ta có thể gọi 2 lần nên chúng ta cần xử lý việc gọi 2 lần này xử lý bằng cách gọi cleanup function này (lý do có strictMode)
+    // const controller = new AbortController()
+    // http
+    //   .get('/posts', {
+    //     signal: controller.signal
+    //   })
+    //   .then((res) => {
+    //     console.log(res)
+    //     const postListResult = res.data
+    //     dispatch({
+    //       type: 'blog/getPostListSuccess',
+    //       payload: postListResult
+    //     })
+    //   })
+    //   .catch((error) => {
+    //     if (!(error.code === 'ERR_CANCELED')) {
+    //       dispatch({
+    //         type: 'blog/getPostListFailed',
+    //         payload: error
+    //       })
+    //     }
+    //   })
+    // return () => {
+    //   controller.abort()
+    // }
+
+    const promise = dispatch(getPostList())
+    return () => {
+      // cancel API
+      promise.abort()
+    }
+  }, [])
+
   const handleDelete = (postId: string) => {
     dispatch(deletePost(postId))
   }
@@ -29,9 +69,21 @@ const PostList = () => {
             </p>
           </div>
           <div className='grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-2 xl:grid-cols-2 xl:gap-8'>
-            {postList.map((post) => (
-              <PostItem post={post} key={post.id} handleDelete={handleDelete} handleStartEditing={handleStartEditing} />
-            ))}
+            {loading && (
+              <>
+                <SkeletonPost />
+                <SkeletonPost />
+              </>
+            )}
+            {!loading &&
+              postList.map((post) => (
+                <PostItem
+                  post={post}
+                  key={post.id}
+                  handleDelete={handleDelete}
+                  handleStartEditing={handleStartEditing}
+                />
+              ))}
           </div>
         </div>
       </div>

@@ -1,8 +1,13 @@
+import { unwrapResult } from '@reduxjs/toolkit'
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../../../../store'
+import { RootState, useAppDispatch } from '../../../../store'
 import { Post } from '../../../../types/blog.type'
-import { addPost, cancelEditingPost, finishEditingPost } from '../../blog.reducer'
+import { addPost, cancelEditingPost, updatePost } from '../../blog.slice'
+
+interface ErrorForm {
+  publishDate: string
+}
 
 const initialState: Post = {
   id: '',
@@ -16,26 +21,42 @@ const initialState: Post = {
 export default function CreatePost() {
   const [formData, setFormData] = useState<Post>(initialState)
   const editingPost = useSelector((state: RootState) => state.blog.editingPost)
+  const [errorForm, setErrorForm] = useState<ErrorForm | null>(null)
 
   useEffect(() => {
     setFormData(editingPost || initialState)
   }, [editingPost])
 
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (editingPost) {
-      dispatch(finishEditingPost(formData))
+      // bình thường khi ta dispatch một asyncThunk thì nó sẽ đóng gói nên sử dụng unwrap để mở gói
+      dispatch(updatePost({ postId: editingPost.id, body: formData }))
+        .unwrap()
+        .then((res) => {
+          setFormData(initialState)
+          if (errorForm) {
+            setErrorForm(null)
+          }
+        })
+        .catch((error) => {
+          setErrorForm(error.error)
+          console.log(error)
+        })
     } else {
       // const formDateWithId = { ...formData, id: new Date().toISOString() }
-      const formDateWithId = { ...formData }
+      try {
+        const formDateWithId = { ...formData }
+        // khi dispatch action addPost thì reducer nó sẽ checking nó nhận thấy đc có 1 action dispatch rồi nên chúng case nào thì xử lý case đó
+        const res = await dispatch(addPost(formDateWithId))
 
-      // khi dispatch action addPost thì reducer nó sẽ checking nó nhận thấy đc có 1 action dispatch rồi nên chúng case nào thì xử lý case đó
-      dispatch(addPost(formDateWithId))
+        // Muốn bắt lấy lỗi hoặc data từ disptach trả về thì phải unwrapResult
+        unwrapResult(res)
+        setFormData(initialState)
+      } catch (error) {}
     }
-
-    setFormData(initialState)
   }
 
   const handleCancelEditingPost = () => {
@@ -89,18 +110,33 @@ export default function CreatePost() {
         </div>
       </div>
       <div className='mb-6'>
-        <label htmlFor='publishDate' className='mb-2 block text-sm font-medium text-gray-900 dark:text-gray-300'>
+        <label
+          htmlFor='publishDate'
+          className={`mb-2 block text-sm font-medium  dark:text-gray-300 ${
+            errorForm?.publishDate ? 'text-red-700' : 'text-gray-900'
+          }`}
+        >
           Publish Date
         </label>
         <input
           type='datetime-local'
           id='publishDate'
-          className='block w-56 rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-blue-500'
+          className={`block w-56 rounded-lg border  p-2.5 text-sm focus:outline-none ${
+            errorForm?.publishDate
+              ? 'border-red-500 bg-red-50 text-red-900 placeholder-red-700 focus:border-red-500 focus:ring-red-500'
+              : 'border-gray-300 bg-gray-50 text-gray-900 focus:border-blue-500  focus:ring-blue-500'
+          }`}
           placeholder='Title'
           required
           value={formData.publishDate}
           onChange={(e) => setFormData((prev) => ({ ...prev, publishDate: e.target.value }))}
         />
+        {errorForm?.publishDate && (
+          <p className='mt-2 text-sm text-red-600'>
+            <span className='font-medium'>Lỗi! </span>
+            {errorForm.publishDate}
+          </p>
+        )}
       </div>
       <div className='mb-6 flex items-center'>
         <input
