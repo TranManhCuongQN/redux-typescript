@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState, useAppDispatch } from '../../../../store'
 import http from '../../../../utils/http'
-import { useGetPostsQuery } from '../../blog.service'
+import { useDeletePostMutation, useGetPostsQuery } from '../../blog.service'
 import { deletePost, getPostList, startEditingPost } from '../../blog.slice'
 // import { deletePost, getPostList, startEditingPost } from '../../blog.slice'
 import PostItem from '../PostItem'
@@ -16,6 +16,8 @@ const PostList = () => {
 
   // const dispatch = useDispatch()
   const dispatch = useAppDispatch()
+
+  const [deletePost, deletePostResult] = useDeletePostMutation()
 
   useEffect(() => {
     // trong thực tế cái app chúng ta có thể gọi 2 lần nên chúng ta cần xử lý việc gọi 2 lần này xử lý bằng cách gọi cleanup function này (lý do có strictMode)
@@ -33,6 +35,7 @@ const PostList = () => {
     //     })
     //   })
     //   .catch((error) => {
+    //     Không muốn dispatch khi thằng này abort (cancel api) nên phải check khác cái lỗi đó mói dispatch
     //     if (!(error.code === 'ERR_CANCELED')) {
     //       dispatch({
     //         type: 'blog/getPostListFailed',
@@ -52,7 +55,8 @@ const PostList = () => {
   }, [])
 
   const handleDelete = (postId: string) => {
-    dispatch(deletePost(postId))
+    // dispatch(deletePost(postId))
+    deletePost(postId)
   }
 
   const handleStartEditing = (postId: string) => {
@@ -69,7 +73,9 @@ const PostList = () => {
       <div className='bg-white py-6 sm:py-8 lg:py-12'>
         <div className='mx-auto max-w-screen-xl px-4 md:px-8'>
           <div className='mb-10 md:mb-16'>
-            <h2 className='mb-4 text-center text-2xl font-bold text-gray-800 md:mb-6 lg:text-3xl'>Được Dev Blog</h2>
+            <h2 className='mb-4 text-center text-2xl font-bold text-gray-800 md:mb-6 lg:text-3xl'>
+              Blog cá nhân - TypeScript
+            </h2>
             <p className='mx-auto max-w-screen-md text-center text-gray-500 md:text-lg'>
               Đừng bao giờ từ bỏ. Hôm nay khó khăn, ngày mai sẽ trở nên tồi tệ. Nhưng ngày mốt sẽ có nắng
             </p>
@@ -97,7 +103,7 @@ const PostList = () => {
               </>
             )}
             {!isFetching &&
-              postList.map((post) => (
+              data?.map((post) => (
                 <PostItem
                   post={post}
                   key={post.id}

@@ -3,14 +3,23 @@ import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState, useAppDispatch } from '../../../../store'
 import { Post } from '../../../../types/blog.type'
+import { useAddPostMutation, useGetPostIdQuery, useUpdatePostMutation } from '../../blog.service'
 import { addPost, cancelEditingPost, updatePost } from '../../blog.slice'
 
 interface ErrorForm {
   publishDate: string
 }
 
-const initialState: Post = {
-  id: '',
+// const initialState: Post = {
+//   id: '',
+//   description: '',
+//   featuredImage: '',
+//   publishDate: '',
+//   published: false,
+//   title: ''
+// }
+
+const initialState: Omit<Post, 'id'> = {
   description: '',
   featuredImage: '',
   publishDate: '',
@@ -19,43 +28,67 @@ const initialState: Post = {
 }
 
 export default function CreatePost() {
-  const [formData, setFormData] = useState<Post>(initialState)
+  // const [formData, setFormData] = useState<Post>(initialState)
+  const [formData, setFormData] = useState<Omit<Post, 'id'> | Post>(initialState)
   const editingPost = useSelector((state: RootState) => state.blog.editingPost)
   const [errorForm, setErrorForm] = useState<ErrorForm | null>(null)
 
+  // giá trị đầu tiên nó return về mình 1 function đặt tên là addPost
+  // giá trị thứ hai là một object result đặt tên là addPostResult
+  const [addPost, addPostResult] = useAddPostMutation()
+  const [updatePost, updatePostResult] = useUpdatePostMutation()
+
+  // Mong muốn useGetPostIdQuery gọi khi có postId thôi còn ko có postId thì nó skip
+  const { data } = useGetPostIdQuery(editingPost?.id as string, { skip: !editingPost?.id })
+
   useEffect(() => {
-    setFormData(editingPost || initialState)
-  }, [editingPost])
+    // setFormData(editingPost || initialState)
+    if (data) {
+      setFormData(data)
+    }
+    // }, [editingPost])
+  }, [data])
 
   const dispatch = useAppDispatch()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (editingPost) {
-      // bình thường khi ta dispatch một asyncThunk thì nó sẽ đóng gói nên sử dụng unwrap để mở gói
-      dispatch(updatePost({ postId: editingPost.id, body: formData }))
-        .unwrap()
-        .then((res) => {
-          setFormData(initialState)
-          if (errorForm) {
-            setErrorForm(null)
-          }
-        })
-        .catch((error) => {
-          setErrorForm(error.error)
-          console.log(error)
-        })
-    } else {
-      // const formDateWithId = { ...formData, id: new Date().toISOString() }
-      try {
-        const formDateWithId = { ...formData }
-        // khi dispatch action addPost thì reducer nó sẽ checking nó nhận thấy đc có 1 action dispatch rồi nên chúng case nào thì xử lý case đó
-        const res = await dispatch(addPost(formDateWithId))
+    // if (editingPost) {
+    //   // bình thường khi ta dispatch một asyncThunk thì nó sẽ đóng gói nên sử dụng unwrap để mở gói
+    //   dispatch(updatePost({ postId: editingPost.id, body: formData }))
+    //     .unwrap()
+    //     .then((res) => {
+    //       setFormData(initialState)
+    //       if (errorForm) {
+    //         setErrorForm(null)
+    //       }
+    //     })
+    //     .catch((error) => {
+    //       setErrorForm(error.error)
+    //       console.log(error)
+    //     })
+    // } else {
+    //   // const formDateWithId = { ...formData, id: new Date().toISOString() }
+    //   try {
+    //     const formDateWithId = { ...formData }
+    //     // khi dispatch action addPost thì reducer nó sẽ checking nó nhận thấy đc có 1 action dispatch rồi nên chúng case nào thì xử lý case đó
+    //     const res = await dispatch(addPost(formDateWithId))
 
-        // Muốn bắt lấy lỗi hoặc data từ disptach trả về thì phải unwrapResult
-        unwrapResult(res)
-        setFormData(initialState)
-      } catch (error) {}
+    //     // Muốn bắt lấy lỗi hoặc data từ disptach trả về thì phải unwrapResult
+    //     unwrapResult(res)
+    //     setFormData(initialState)
+    //   } catch (error) {}
+    // }
+
+    if (editingPost) {
+      await updatePost({
+        id: editingPost.id,
+        body: formData as Post
+      }).unwrap()
+      setFormData(initialState)
+    } else {
+      const result = await addPost(formData).unwrap()
+      setFormData(initialState)
     }
   }
 
