@@ -1,8 +1,10 @@
 import { unwrapResult } from '@reduxjs/toolkit'
-import { useEffect, useState } from 'react'
+import { FetchBaseQueryError } from '@reduxjs/toolkit/dist/query'
+import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState, useAppDispatch } from '../../../../store'
 import { Post } from '../../../../types/blog.type'
+import { isEntityError, isFetchBaseQueryError } from '../../../../utils/helpers'
 import { useAddPostMutation, useGetPostIdQuery, useUpdatePostMutation } from '../../blog.service'
 import { addPost, cancelEditingPost, updatePost } from '../../blog.slice'
 
@@ -27,11 +29,20 @@ const initialState: Omit<Post, 'id'> = {
   title: ''
 }
 
+// Mẹo copy các key của kiểu Omit<Post, 'id'> để làm key cho kiểu FormError
+type FormError =
+  | {
+      // Key của chúng ta có thể là 1 trong những key của Omit<Post, 'id'> và có kiểu là string
+      // [key in keyof Omit<Post, 'id'>]: string
+      [key in keyof typeof initialState]: string
+    }
+  | null
+
 export default function CreatePost() {
   // const [formData, setFormData] = useState<Post>(initialState)
   const [formData, setFormData] = useState<Omit<Post, 'id'> | Post>(initialState)
   const editingPost = useSelector((state: RootState) => state.blog.editingPost)
-  const [errorForm, setErrorForm] = useState<ErrorForm | null>(null)
+  // const [errorForm, setErrorForm] = useState<ErrorForm | null>(null)
 
   // giá trị đầu tiên nó return về mình 1 function đặt tên là addPost
   // giá trị thứ hai là một object result đặt tên là addPostResult
@@ -40,6 +51,29 @@ export default function CreatePost() {
 
   // Mong muốn useGetPostIdQuery gọi khi có postId thôi còn ko có postId thì nó skip
   const { data } = useGetPostIdQuery(editingPost?.id as string, { skip: !editingPost?.id })
+
+  // Lỗi có thể đến từ 'addPostResult' hoặc 'updatePostResult'
+  // Vậy chúng ta sẽ dựa vào điều kiện có postId hoặc không có (tức đang trong chỗ độ edit hay không) để show lỗi.
+  // Chúng ta cũng ko cần thiết phải tạo 1 state errorform
+  // Vì errorform phụ thuộc vào 'addPostResult', 'updatePostResult' và 'postId' nên có thể dùng một biến để tính toán
+
+  // dùng useMemo để đỡ tính toán nhiều lần
+  const errorForm: FormError = useMemo(() => {
+    const errorResult = editingPost?.id ? updatePostResult.error : addPostResult.error
+
+    // Vì errorResult có thể là FetchBaseQueryError | SerializedError | undefined, mỗi kiểu có cấu trúc khác nhau nên chúng ta cần kiểm tra để hiển thị cho đúng.
+
+    if (isEntityError(errorResult)) {
+      // Có thể ép kiểu một cách an toàn chỗ này, vì chúng ta đã kiểm tra chắc chắn rồi.
+      // Nếu ko muốn ép kiểu thì có thể khai báo interface `EntityError` sao cho data.errors tương đồng với FormError là đc
+
+      console.log('errorResult', errorResult)
+      return errorResult.data.error as FormError
+    }
+
+    // return null bởi vì muốn xử lý các lỗi liên quan đến Entity Error trong component thôi, còn những lỗi trả về mesage: string thì cho toast lên thì xử lý ở middleware
+    return null
+  }, [editingPost?.id, updatePostResult, addPostResult])
 
   useEffect(() => {
     // setFormData(editingPost || initialState)

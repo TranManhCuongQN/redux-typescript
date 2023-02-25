@@ -39,6 +39,7 @@ export const blogApi = createApi({
           // result nó sẽ trả về 2 loại là undefined và mảng Post
           // tại sao phải thêm 'Posts' as const bởi vì javaSctipt nó hiểu type: 'Posts' là string chứ ko phải type là 1 'Posts'
           const final = [
+            //provideTags sẽ có dạng [{type: 'Posts', id: 1},{type: 'Posts', id: 2},{type: 'Posts', id: 3},{type: 'Posts', id: 4}, {type: 'Posts', id: 'LIST'}]
             ...result.map(({ id }) => ({
               type: 'Posts' as const,
               id
@@ -67,12 +68,16 @@ export const blogApi = createApi({
       // trong trường hợp này getPosts sẽ chạy lại
       // khi mình addPost add thành công thì ông invalidatesTags này, ổng chạy và return cho mình một cái array [{type: 'Posts', id: 'LIST'}] và cái này nó trong  providesTags kiểu gì nó cũng trả về [{type: 'Posts', id: 'LIST'}] (trong cả 2 trường hợp có result và không có result thì nó cũng trả về như trên) nên kiểu gì mình addPost thành công providesTags cũng bị match. Khi providesTags match với bất kỳ invalidatesTags thì providesTags này sẽ làm cho getPosts gọi lại. Khi getPosts gọi lại thì nó cập nhật lại redux state.
       // LIST là cái tên mình đặt tên gì cũng đc
-      invalidatesTags: (result, error, body) => [
-        {
-          type: 'Posts',
-          id: 'LIST'
-        }
-      ]
+      // Nếu error lỗi thì return về mảng rỗng thì nó ko match vs cái nào providesTags của getPosts cả nên nó ko gọi lại API
+      invalidatesTags: (result, error, body) =>
+        error
+          ? []
+          : [
+              {
+                type: 'Posts',
+                id: 'LIST'
+              }
+            ]
     }),
 
     // get theo id
@@ -89,12 +94,15 @@ export const blogApi = createApi({
       },
 
       // chúng ta cập nhật 1 bài Post thì ta biết id của bài đó. Trong những trường hợp mình cập nhật bài Post này rồi, biết đc id rồi thì mình cũng có thể điều khiển đc làm cho getPosts thằng nào đấy gọi lại thông qua id. Trong những trường hợp ko có id thì truyền vào LIST
-      invalidatesTags: (result, error, data) => [
-        {
-          type: 'Posts',
-          id: data.id
-        }
-      ]
+      invalidatesTags: (result, error, data) =>
+        error
+          ? []
+          : [
+              {
+                type: 'Posts',
+                id: data.id
+              }
+            ]
     }),
     deletePost: build.mutation<{}, string>({
       query(id) {

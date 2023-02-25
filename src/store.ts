@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
 import blogReducer from './pages/blog/blog.slice'
 import { setupListeners } from '@reduxjs/toolkit/dist/query'
+import { rtkQueryErrorLogger } from './middleware'
 
 // function configureStore nó sẽ generate ra 1 store object
 export const store = configureStore({
@@ -13,7 +14,7 @@ export const store = configureStore({
 
   // Thêm api middleware để enable các tính năng như caching, invalidation, polling của RTK Query
   middleware(getDefaultMiddleware) {
-    return getDefaultMiddleware().concat(blogApi.middleware)
+    return getDefaultMiddleware().concat(blogApi.middleware, rtkQueryErrorLogger)
   }
 })
 
