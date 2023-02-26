@@ -61,3 +61,8 @@ Sẽ có 2 kiểu: FetchBaseQueryError | SerializedError
 
 - RTK Query sẽ trả lỗi trực tiếp cho chúng ta nếu lỗi không mong đợi do người dùng throw ra. Nó sẽ transform thành SerializedError
 - Những cái lỗi liên quan đến fetchAPI thì nó nhảy vào FetchBaseQueryError
+
+## Polling
+
+- Là tính năng tự động gọi API sau 1 khoảng thời gian nào đó
+- Nó rất thích hợp khi web chúng ta ko tích hợp socket io (realtime)

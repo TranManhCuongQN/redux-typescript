@@ -9,12 +9,20 @@ import { Post } from '../../types/blog.type'
 export const blogApi = createApi({
   reducerPath: 'blogApi', // Tên field trong Redux state
   tagTypes: ['Posts'], // Những kiểu tag cho phép dùng trong blogApi
+  // Cấu hình cho cả endpoint
+  keepUnusedDataFor: 10, // thay vì 60s mặc định, mình set up lại 10s
 
   // fetchBaseQuery là một function nhỏ được xây dựng trên fetch API
   // baseQuery được dùng cho mỗi endpoint để fetch api
   // Nó không thay thế hoàn toàn được axios nhưng sẽ giải quyết được hầu hết các vấn đề của bạn
   // Chúng ta có thể sử dụng axios thay thế cũng đc, nhưng để sau nhé.
-  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:4000/' }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: 'http://localhost:4000/',
+    prepareHeaders(headers) {
+      headers.set('authorization', 'Bearer ABCXYZ')
+      return headers
+    }
+  }),
 
   // endPoints là tập hợp những method giúp get, post, put, delete,... tương tác với server
   // khi khai báo endPoints nó sẽ sinh ra cho chúng ta các hook tương ứng để dùng trong component
@@ -82,7 +90,20 @@ export const blogApi = createApi({
 
     // get theo id
     getPostId: build.query<Post, string>({
-      query: (id) => `posts/${id}`
+      // setting headers cho từng endpoint
+      query: (id) => ({
+        url: `posts/${id}`,
+        headers: {
+          hello: 'world'
+        },
+        params: {
+          firstName: 'Hello',
+          'last-name': 'world'
+        }
+      }),
+
+      // Cấu hình cho từng endpoint
+      keepUnusedDataFor: 10 // thay vì 60s mặc định, mình set up lại 10s
     }),
     updatePost: build.mutation<Post, { id: string; body: Post }>({
       query(data) {

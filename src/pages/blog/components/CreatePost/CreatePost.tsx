@@ -50,7 +50,14 @@ export default function CreatePost() {
   const [updatePost, updatePostResult] = useUpdatePostMutation()
 
   // Mong muốn useGetPostIdQuery gọi khi có postId thôi còn ko có postId thì nó skip
-  const { data } = useGetPostIdQuery(editingPost?.id as string, { skip: !editingPost?.id })
+  // refetch bắt nó gọi lại api
+  // refetchOnMountOrArgChange: 5. Nếu component 3 bị unmount, data 3 vẫn còn vì component 4 vẫn đang subcribe. Nếu lúc này 4 unsubcribe thì data 3 mới bị xóa sau 5s
+  // pollingInterval: mình xét sau 1s nó sẽ gọi lại API
+  const { data, refetch } = useGetPostIdQuery(editingPost?.id as string, {
+    skip: !editingPost?.id,
+    refetchOnMountOrArgChange: 5,
+    pollingInterval: 1000
+  })
 
   // Lỗi có thể đến từ 'addPostResult' hoặc 'updatePostResult'
   // Vậy chúng ta sẽ dựa vào điều kiện có postId hoặc không có (tức đang trong chỗ độ edit hay không) để show lỗi.
@@ -132,6 +139,15 @@ export default function CreatePost() {
 
   return (
     <form onSubmit={handleSubmit} onReset={handleCancelEditingPost}>
+      <button
+        className='group relative inline-flex items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-purple-600 to-blue-500 p-0.5 text-sm font-medium text-gray-900 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-300 group-hover:from-purple-600 group-hover:to-blue-500 dark:text-white dark:focus:ring-blue-800'
+        type='button'
+        onClick={() => refetch()}
+      >
+        <span className='relative rounded-md bg-white px-5 py-2.5 transition-all duration-75 ease-in group-hover:bg-opacity-0 dark:bg-gray-900'>
+          Publish Post
+        </span>
+      </button>
       <div className='mb-6'>
         <label htmlFor='title' className='mb-2 block text-sm font-medium text-gray-900 dark:text-gray-300'>
           Title
